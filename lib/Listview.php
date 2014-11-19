@@ -301,8 +301,14 @@ class ListView extends Element
 	{
 		return new Element('thead', [
 
-			Element::CHILDREN => $decorated_headers
+			Element::CHILDREN => [
 
+				new Element('tr', [
+
+					Element::CHILDREN => $decorated_headers
+
+				])
+			]
 		]);
 	}
 
