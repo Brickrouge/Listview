@@ -19,7 +19,8 @@
 	},
 	"require": {
 		"php": ">=5.4.0",
-		"brickrouge/brickrouge": "~2.1"
+		"brickrouge/brickrouge": "~2.1",
+		"icanboogie/accessor": "~1.0"
 	},
 
 	"autoload": {

@@ -11,12 +11,14 @@
 
 namespace Brickrouge;
 
+use ICanBoogie\Accessor\AccessorTrait;
+
 /**
  * Representation of a listview column.
  */
 class ListViewColumn
 {
-	use \ICanBoogie\GetterTrait;
+	use AccessorTrait;
 
 	protected $id;
 	protected $options;
