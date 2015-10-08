@@ -15,6 +15,9 @@ use ICanBoogie\Accessor\AccessorTrait;
 
 /**
  * Representation of a listview column.
+ *
+ * @property-read string $class
+ * @property-read string $title
  */
 class ListViewColumn
 {
@@ -24,7 +27,7 @@ class ListViewColumn
 	protected $options;
 	protected $listview;
 
-	public function __construct(ListView $listview, $id, array $options=[])
+	public function __construct(ListView $listview, $id, array $options = [])
 	{
 		$this->id = $id;
 		$this->listview = $listview;
@@ -47,7 +50,7 @@ class ListViewColumn
 	}
 
 	/**
-	 * Render the header of the column.
+	 * Render the content of the column's header.
 	 */
 	public function render_header()
 	{
@@ -55,12 +58,26 @@ class ListViewColumn
 	}
 
 	/**
-	 * Render a cell of the column.
+	 * Render the content of a column cell.
 	 *
-	 * @param mixed $row
+	 * @param object $record
 	 */
-	public function render_cell($row)
+	public function render_cell($record)
 	{
-		return $row->{ $this->id };
+		return $record->{ $this->id };
+	}
+
+	/**
+	 * Translates and formats a string.
+	 *
+	 * @param string $native
+	 * @param array $args
+	 * @param array $options
+	 *
+	 * @return string
+	 */
+	protected function t($native, array $args = [], array $options = [])
+	{
+		return $this->listview->t($native, $args, $options);
 	}
 }

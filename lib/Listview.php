@@ -15,12 +15,12 @@ namespace Brickrouge;
  * A listview element.
  *
  * @property-read ListViewColumn[] $columns
- * @property-read array $rows
+ * @property array $records
  */
 class ListView extends Element
 {
 	const COLUMNS = '#listview-columns';
-	const ROWS = '#listview-rows';
+	const RECORDS = '#listview-records';
 
 	/**
 	 * Columns use to display the data of the records.
@@ -29,7 +29,7 @@ class ListView extends Element
 	 */
 	protected $columns;
 
-	public function __construct(array $attributes=[])
+	public function __construct(array $attributes = [])
 	{
 		unset($this->columns);
 
@@ -40,6 +40,8 @@ class ListView extends Element
 	 * Adds the following class names:
 	 *
 	 * - `listview`
+	 *
+	 * @inheritdoc
 	 */
 	protected function alter_class_names(array $class_names)
 	{
@@ -89,22 +91,32 @@ class ListView extends Element
 	}
 
 	/**
-	 * Returns the rows to display.
+	 * Returns the records to display.
 	 *
 	 * @return array[]
 	 */
-	protected function get_rows()
+	protected function get_records()
 	{
-		return $this[self::ROWS];
+		return $this[self::RECORDS];
 	}
 
+	/**
+	 * @return Element
+	 */
 	protected function render_inner_html()
 	{
+		$records = $this->records;
+
+		if (!$records)
+		{
+			return $this->render_no_records();
+		}
+
 		$headers = $this->render_headers();
-		$cells = $this->render_cells();
+		$rendered_cells = $this->render_cells();
 
 		$this->alter_headers($headers);
-		$this->alter_cells($cells);
+		$this->alter_cells($rendered_cells);
 
 		$columns_classes = [];
 
@@ -114,7 +126,7 @@ class ListView extends Element
 		}
 
 		$decorated_headers = $this->decorate_headers($headers, $columns_classes);
-		$decorated_cells = $this->decorate_cells($cells, $columns_classes);
+		$decorated_cells = $this->decorate_cells($rendered_cells, $columns_classes);
 
 		$this->alter_decorated_headers($decorated_headers);
 		$this->alter_decorated_cells($decorated_cells);
@@ -126,7 +138,7 @@ class ListView extends Element
 	}
 
 	/**
-	 * Render the columns headers.
+	 * Renders the column headers.
 	 *
 	 * @return string[]
 	 */
@@ -149,7 +161,7 @@ class ListView extends Element
 	 *
 	 *     [<column_id>][] => <cell_content>
 	 *
-	 * @return string[][]
+	 * @return array
 	 */
 	protected function render_cells()
 	{
@@ -157,11 +169,11 @@ class ListView extends Element
 
 		foreach ($this->columns as $id => $column)
 		{
-			foreach ($this->rows as $row)
+			foreach ($this->records as $record)
 			{
 				try
 				{
-					$content = (string) $column->render_cell($row);
+					$content = (string) $column->render_cell($record);
 				}
 				catch (\Exception $e)
 				{
@@ -175,34 +187,76 @@ class ListView extends Element
 		return $rendered_cells;
 	}
 
+	/**
+	 * Alters headers content.
+	 *
+	 * @param array $headers
+	 */
 	protected function alter_headers(array &$headers)
 	{
 
 	}
 
-	protected function alter_cells(array &$cells)
+	/**
+	 * Alters cells content.
+	 *
+	 * @param array $rendered_cells
+	 */
+	protected function alter_cells(array &$rendered_cells)
 	{
 
 	}
 
+	/**
+	 * Decorates headers content with `TH.<column_class>/DIV` elements.
+	 *
+	 * @param array $headers
+	 * @param array $columns_classes
+	 *
+	 * @return array
+	 */
 	protected function decorate_headers(array $headers, array $columns_classes)
 	{
 		$decorated_headers = [];
 
 		foreach ($headers as $column_id => $html)
 		{
-			$decorated_headers[$column_id] = new Element('th', [
+			$decorated_header = $this->decorate_header($html, $column_id);
+			$decorated_header->add_class($columns_classes[$column_id]);
 
-				Element::INNER_HTML => $html,
-
-				'class' => $columns_classes[$column_id]
-
-			]);
+			$decorated_headers[$column_id] = $decorated_header;
 		}
 
 		return $decorated_headers;
 	}
 
+	/**
+	 * Decorates a header content with a `TH` element.
+	 *
+	 * @param string $content
+	 * @param string $column_column_id
+	 *
+	 * @return Element
+	 */
+	protected function decorate_header($content, $column_column_id)
+	{
+		return new Element('th', [
+
+			Element::INNER_HTML => $content ?: '&nbsp;',
+
+			'class' => 'header--' . \ICanBoogie\normalize($column_column_id)
+
+		]);
+	}
+
+	/**
+	 * Decorates cells content in `TD.<column_class>` elements.
+	 *
+	 * @param array $cells
+	 * @param array $columns_classes
+	 *
+	 * @return array
+	 */
 	protected function decorate_cells(array $cells, $columns_classes)
 	{
 		$decorated_cells = [];
@@ -213,7 +267,7 @@ class ListView extends Element
 			{
 				$decorated_cells[$column_id][$i] = new Element('td', [
 
-					Element::INNER_HTML => $html,
+					Element::INNER_HTML => $html ?: '&nbsp;',
 
 					'class' => $columns_classes[$column_id]
 
@@ -225,7 +279,7 @@ class ListView extends Element
 	}
 
 	/**
-	 * Alter decorated headers
+	 * Alters decorated headers
 	 *
 	 * @param Element[] $decorated_headers
 	 */
@@ -235,7 +289,7 @@ class ListView extends Element
 	}
 
 	/**
-	 * Alter decorated cells.
+	 * Alters decorated cells.
 	 *
 	 * @param array $decorated_cells
 	 */
@@ -245,15 +299,40 @@ class ListView extends Element
 	}
 
 	/**
-	 * Convert rendered cells to rows.
+	 * Renders the specified rows.
+	 *
+	 * The rows are rendered as an array of {@link Element} instances representing `TR` elements.
+	 *
+	 * @param array $decorated_cells
+	 *
+	 * @return Element[]
+	 */
+	protected function render_rows(array $decorated_cells)
+	{
+		$rendered_rows = [];
+
+		foreach ($this->columns_to_rows($decorated_cells) as $cells)
+		{
+			$rendered_rows[] = new Element('tr', [
+
+				Element::CHILDREN => $cells
+
+			]);
+		}
+
+		return $rendered_rows;
+	}
+
+	/**
+	 * Converts rendered cells to rows.
 	 *
 	 * @param array $rendered_cells
 	 *
-	 * @return array[]array
+	 * @return array
 	 */
 	protected function columns_to_rows(array $rendered_cells)
 	{
-		$rows = array();
+		$rows = [];
 
 		foreach ($rendered_cells as $column_id => $cells)
 		{
@@ -267,36 +346,45 @@ class ListView extends Element
 	}
 
 	/**
-	 * Renders the specified rows.
+	 * Alters rows.
 	 *
-	 * The rows are rendered as an array of {@link Element} instances representing `TR` elements.
-	 *
-	 * @param array $rows
-	 *
-	 * @return array[]Element
+	 * @param Element[] $rendered_rows Reference to the rendered rows.
 	 */
-	protected function render_rows(array $decorated_cells)
-	{
-		$rendered_rows = [];
-		$rows = $this->columns_to_rows($decorated_cells);
-
-		foreach ($rows as $cells)
-		{
-			$rendered_rows[] = new Element('tr', [
-
-				Element::CHILDREN => $cells
-
-			]);
-		}
-
-		return $rendered_rows;
-	}
-
-	protected function alter_rows(array &$rows)
+	protected function alter_rows(array &$rendered_rows)
 	{
 
 	}
 
+	/**
+	 * Renders `TABLE` markup.
+	 *
+	 * @param Element[] $decorated_headers
+	 * @param Element[] $rendered_rows
+	 *
+	 * @return Element
+	 */
+	protected function render_table(array $decorated_headers, array $rendered_rows)
+	{
+		return new Element('table', [
+
+			Element::CHILDREN => [
+
+				$this->render_head($decorated_headers),
+				$this->render_foot(),
+				$this->render_body($rendered_rows)
+
+			]
+
+		]);
+	}
+
+	/**
+	 * Renders `THEAD` markup.
+	 *
+	 * @param Element[] $decorated_headers
+	 *
+	 * @return Element
+	 */
 	protected function render_head($decorated_headers)
 	{
 		return new Element('thead', [
@@ -312,34 +400,34 @@ class ListView extends Element
 		]);
 	}
 
+	/**
+	 * Renders `TFOOT` markup.
+	 */
 	protected function render_foot()
 	{
 
 	}
 
 	/**
-	 * Renders body.
+	 * Renders `TBODY` markup.
 	 *
 	 * @return Element An {@link Element} instance representing a `tbody` element. Its children
 	 * are the rendered rows returned by {@link render_rows()}.
+	 *
+	 * @param Element[] $rendered_rows
 	 */
-	protected function render_body($rendered_rows)
+	protected function render_body(array $rendered_rows)
 	{
 		return new Element('tbody', [ Element::CHILDREN => $rendered_rows ]);
 	}
 
-	protected function render_table(array $decorated_headers, array $rendered_rows)
+	/**
+	 * Renders a notice when there is no record to render.
+	 *
+	 * @return Alert
+	 */
+	protected function render_no_records()
 	{
-		return new Element('table', [
-
-			Element::CHILDREN => [
-
-				$this->render_head($decorated_headers),
-				$this->render_foot(),
-				$this->render_body($rendered_rows)
-
-			]
-
-		]);
+		return new Alert("There is no record to display", [ 'class' => 'alert listview-alert' ]);
 	}
 }
