@@ -428,6 +428,13 @@ class ListView extends Element
 	 */
 	protected function render_no_records()
 	{
-		return new Alert("There is no record to display", [ 'class' => 'alert listview-alert' ]);
+		return new Alert("There is no record to display.", [
+
+			Alert::UNDISMISSABLE => true,
+			Alert::CONTEXT => Alert::CONTEXT_INFO,
+
+			'class' => 'alert alert-block listview-alert'
+
+		]);
 	}
 }
