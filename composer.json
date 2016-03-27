@@ -17,13 +17,16 @@
 		"issues": "https://github.com/Brickrouge/Listview/issues",
 		"source": "https://github.com/Brickrouge/Listview"
 	},
+	"minimum-stability": "dev",
 	"require": {
 		"php": ">=5.4.0",
-		"brickrouge/brickrouge": "~2.1",
-		"icanboogie/accessor": "~1.0"
+		"brickrouge/brickrouge": "^2.1|^3.0",
+		"icanboogie/accessor": "^1.0"
 	},
 
 	"autoload": {
-		"classmap": [ "lib/" ]
+		"psr-4": {
+			"Brickrouge\\": "lib"
+		}
 	}
 }
